@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Interview Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="hero">
+    <h1>🤖 AI Interview Portal</h1>
+    <p>
+        Practice technical interview questions and track your performance
+    </p>
+</div>
+    <div class="login-card">
+        <h2>Login</h2>
+         <input type="text"
+           id="username"
+           placeholder="Username">
+               <br><br>
+                <input type="password"
+           id="password"
+           placeholder="Password">
+
+    <br><br>
+    <button onclick="login()">Login</button>
+<button onclick="registerUser()">Register</button>
+
+        <div class="portal-controls">
+
+    <button onclick="loadQuestions()">
+        Load Questions
+    </button>
+
+    <button onclick="submitTest()">
+        Submit Test
+    </button>
+    <button onclick="loadResults()">
+    View Results
+</button>
+<button onclick="logout()">
+    Logout
+</button>
+
+</div>
+<div id="adminPanel" style="display:none;">
+
+    <h2>Admin Panel</h2>
+
+    <input
+        type="text"
+        id="questionText"
+        placeholder="Enter Question">
+
+    <input
+        type="text"
+        id="option1"
+        placeholder="Option 1">
+
+    <input
+        type="text"
+        id="option2"
+        placeholder="Option 2">
+
+    <input
+        type="text"
+        id="option3"
+        placeholder="Option 3">
+
+    <input
+        type="text"
+        id="option4"
+        placeholder="Option 4">
+
+    <input
+        type="text"
+        id="correctAnswer"
+        placeholder="Correct Answer">
+
+    <button onclick="addQuestion()">
+        Add Question
+    </button>
+
+</div>
+
+    
+
+   
+
+
+
+   
+    
+
+
+<div id="questions"></div>
+
+<h2 id="result"></h2>
+
+   
+    
+    
+
+
+
+<div id="allResults"></div>
+
+<hr>
+
+   
+</div>
+
+    
+<script>
+        let currentUser = "";
+        async function login() {
+
+    let username =
+    document.getElementById("username").value;
+
+    let password =
+    document.getElementById("password").value;
+
+    if(username === "" || password === ""){
+        alert("Enter Username and Password");
+        return;
+    }
+
+    currentUser = username;
+
+    alert("Login Successful");
+
+    document.getElementById("adminPanel").style.display = "block";
+}
+async function addQuestion() {
+    alert("Button Clicked");
+
+    let question = document.getElementById("questionText").value;
+    let option1 = document.getElementById("option1").value;
+    let option2 = document.getElementById("option2").value;
+    let option3 = document.getElementById("option3").value;
+    let option4 = document.getElementById("option4").value;
+    let answer = document.getElementById("correctAnswer").value;
+
+    let response = await fetch(
+        "http://127.0.0.1:5000/add_question",
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                question: question,
+                option1: option1,
+                option2: option2,
+                option3: option3,
+                option4: option4,
+                answer: answer
+            })
+        }
+    );
+
+    let data = await response.json();
+
+    alert(data.message);
+}
+        let questionsData = [];
+        async function loadQuestions() {
+
+            let response =
+                await fetch("http://127.0.0.1:5000/questions");
+
+            let data = await response.json();
+
+
+
+questionsData = data;
+
+            let output = "";
+
+            data.forEach(q => {
+   output += `
+<div class="question-card">
+
+<h3>${q.question}</h3>
+
+<input type="radio" name="q${q.id}" value="${q.option1}">
+${q.option1}<br><br>
+
+<input type="radio" name="q${q.id}" value="${q.option2}">
+${q.option2}<br><br>
+
+<input type="radio" name="q${q.id}" value="${q.option3}">
+${q.option3}<br><br>
+
+<input type="radio" name="q${q.id}" value="${q.option4}">
+${q.option4}<br><br>
+
+</div>
+`;
+});
+
+            document.getElementById("questions").innerHTML = output;
+            document.getElementById("questions").style.display = "block";
+        }
+        
+       
+function submitTest() {
+    
+    if(currentUser === "") {
+    alert("Please login first");
+    return;
+}
+if(questionsData.length === 0) {
+    alert("Please load questions first");
+    return;
+}
+
+    let score = 0;
+
+    questionsData.forEach(q => {
+
+        let selected =
+    document.querySelector(
+        `input[name="q${q.id}"]:checked`
+    );
+
+        if(selected) {
+
+            if(selected.value === q.answer) {
+
+                score++;
+
+            }
+        }
+
+    });
+    
+    
+    fetch("http://127.0.0.1:5000/save_result", {
+
+    method: "POST",
+
+    headers: {
+        "Content-Type": "application/json"
+    },
+
+    body: JSON.stringify({
+        username: currentUser,
+        score: score
+    })
+
+});
+
+
+    document.getElementById("result").innerHTML =
+        `<h2>Your Score: ${score}/${questionsData.length}</h2>`;
+}
+
+
+   
+
+    async function loadResults() {
+
+    let response =
+        await fetch("http://127.0.0.1:5000/results");
+
+    let data = await response.json();
+   
+
+    let output = "<h2>Previous Results</h2>";
+
+    data.forEach(r => {
+
+    if(r.username !== currentUser){
+        return;
+    }
+        output += `
+<div class="result-card">
+    <p><strong>User:</strong> ${r.username}</p>
+    <p><strong>Score:</strong> ${r.score}</p>
+    <p><strong>Date:</strong> ${r.test_date}</p>
+</div>
+`;
+    });
+
+    document.getElementById("allResults").innerHTML = output;
+    document.getElementById("allResults").style.display = "block";
+    
+
+}
+function logout() {
+
+    currentUser = "";
+
+    document.getElementById("username").value = "";
+    document.getElementById("password").value = "";
+
+    document.getElementById("questions").innerHTML = "";
+    document.getElementById("result").innerHTML = "";
+    document.getElementById("allResults").innerHTML = "";
+
+    questionsData = [];
+
+    alert("Logged out successfully");
+}
+async function registerUser() {
+
+    let username =
+        document.getElementById("username").value;
+
+    let password =
+        document.getElementById("password").value;
+
+    let response = await fetch(
+        "http://127.0.0.1:5000/register",
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                username: username,
+                password: password
+            })
+        }
+    );
+
+    let data = await response.json();
+
+    alert(data.message);
+}
+</script>
+
+</div>
+</body>
+</html>
